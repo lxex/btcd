@@ -4,7 +4,7 @@
 #
 # docker build . -t yourregistry/btcd
 #
-# You can use the following command to buid an arm64v8 container:
+# You can use the following command to build an arm64v8 container:
 #
 # docker build . -t yourregistry/btcd --build-arg ARCH=arm64v8
 #
@@ -15,11 +15,15 @@
 # 8334  Mainet RPC port
 
 ARG ARCH=amd64
-
-FROM golang:1.14-alpine3.12 AS build-container
+# using the SHA256 instead of tags
+# https://github.com/opencontainers/image-spec/blob/main/descriptor.md#digests
+# https://cloud.google.com/architecture/using-container-images
+# https://github.com/google/go-containerregistry/blob/main/cmd/crane/README.md
+# ➜  ~ crane digest golang:1.17.13-alpine3.16
+# sha256:c80567372be0d486766593cc722d3401038e2f150a0f6c5c719caa63afb4026a
+FROM golang@sha256:c80567372be0d486766593cc722d3401038e2f150a0f6c5c719caa63afb4026a AS build-container
 
 ARG ARCH
-ENV GO111MODULE=on
 
 ADD . /app
 WORKDIR /app
@@ -30,7 +34,7 @@ RUN set -ex \
   && echo "Compiling for $GOARCH" \
   && go install -v . ./cmd/...
 
-FROM $ARCH/alpine:3.12
+FROM $ARCH/alpine:3.16
 
 COPY --from=build-container /go/bin /bin
 

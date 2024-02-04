@@ -13,12 +13,12 @@ import (
 	"time"
 
 	"github.com/btcsuite/btcd/blockchain"
-	"github.com/btcsuite/btcd/btcec"
+	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
 )
 
 // fakeChain is used by the pool harness to provide generated test utxos and
@@ -291,7 +291,7 @@ func newPoolHarness(chainParams *chaincfg.Params) (*poolHarness, []spendableOutp
 	if err != nil {
 		return nil, nil, err
 	}
-	signKey, signPub := btcec.PrivKeyFromBytes(btcec.S256(), keyBytes)
+	signKey, signPub := btcec.PrivKeyFromBytes(keyBytes)
 
 	// Generate associated pay-to-script-hash address and resulting payment
 	// script.
@@ -560,7 +560,7 @@ func TestOrphanReject(t *testing.T) {
 
 		// Ensure no transactions were reported as accepted.
 		if len(acceptedTxns) != 0 {
-			t.Fatal("ProcessTransaction: reported %d accepted "+
+			t.Fatalf("ProcessTransaction: reported %d accepted "+
 				"transactions from failed orphan attempt",
 				len(acceptedTxns))
 		}
@@ -1491,7 +1491,7 @@ func TestRBF(t *testing.T) {
 
 				return tx, nil
 			},
-			err: "already spent by transaction",
+			err: "already spent in mempool",
 		},
 		{
 			// A transaction cannot replace another if we don't
@@ -1522,7 +1522,7 @@ func TestRBF(t *testing.T) {
 
 				return tx, nil
 			},
-			err: "already spent by transaction",
+			err: "already spent in mempool",
 		},
 		{
 			// A transaction cannot replace another if doing so

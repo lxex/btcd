@@ -84,9 +84,10 @@ var helpDescsEnUS = map[string]string{
 	// ScriptPubKeyResult help.
 	"scriptpubkeyresult-asm":       "Disassembly of the script",
 	"scriptpubkeyresult-hex":       "Hex-encoded bytes of the script",
-	"scriptpubkeyresult-reqSigs":   "The number of required signatures",
+	"scriptpubkeyresult-reqSigs":   "(DEPRECATED) The number of required signatures",
 	"scriptpubkeyresult-type":      "The type of the script (e.g. 'pubkeyhash')",
-	"scriptpubkeyresult-addresses": "The bitcoin addresses associated with this script",
+	"scriptpubkeyresult-address":   "The bitcoin address associated with this script (only if a well-defined address exists)",
+	"scriptpubkeyresult-addresses": "(DEPRECATED) The bitcoin addresses associated with this script",
 
 	// Vout help.
 	"vout-value":        "The amount in BTC",
@@ -106,9 +107,10 @@ var helpDescsEnUS = map[string]string{
 
 	// DecodeScriptResult help.
 	"decodescriptresult-asm":       "Disassembly of the script",
-	"decodescriptresult-reqSigs":   "The number of required signatures",
+	"decodescriptresult-reqSigs":   "(DEPRECATED) The number of required signatures",
 	"decodescriptresult-type":      "The type of the script (e.g. 'pubkeyhash')",
-	"decodescriptresult-addresses": "The bitcoin addresses associated with this script",
+	"decodescriptresult-address":   "The bitcoin address associated with this script (only if a well-defined address exists)",
+	"decodescriptresult-addresses": "(DEPRECATED) The bitcoin addresses associated with this script",
 	"decodescriptresult-p2sh":      "The script hash for use in pay-to-script-hash transactions (only present if the provided redeem script is not already a pay-to-script-hash script)",
 
 	// DecodeScriptCmd help.
@@ -347,6 +349,15 @@ var helpDescsEnUS = map[string]string{
 	"getblocktemplate--condition2": "mode=proposal, accepted",
 	"getblocktemplate--result1":    "An error string which represents why the proposal was rejected or nothing if accepted",
 
+	// GetChainTipsResult help.
+	"getchaintipsresult-chaintips": "The chaintips that this node is aware of",
+	"getchaintipsresult-height":    "The height of the chain tip",
+	"getchaintipsresult-hash":      "The block hash of the chain tip",
+	"getchaintipsresult-branchlen": "Returns zero for main chain. Otherwise is the length of branch connecting the tip to the main chain",
+	"getchaintipsresult-status":    "Status of the chain. Returns \"active\" for the main chain",
+	// GetChainTipsCmd help.
+	"getchaintips--synopsis": "Returns information about all known tips in the block tree, including the main chain as well as orphaned branches.",
+
 	// GetCFilterCmd help.
 	"getcfilter--synopsis":  "Returns a block's committed filter given its hash.",
 	"getcfilter-filtertype": "The type of filter to return (0=regular)",
@@ -528,7 +539,7 @@ var helpDescsEnUS = map[string]string{
 	"gettxoutresult-coinbase":      "Whether or not the transaction is a coinbase",
 
 	// GetTxOutCmd help.
-	"gettxout--synopsis":      "Returns information about an unspent transaction output..",
+	"gettxout--synopsis":      "Returns information about an unspent transaction output.",
 	"gettxout-txid":           "The hash of the transaction",
 	"gettxout-vout":           "The index of the output",
 	"gettxout-includemempool": "Include the mempool when true",
@@ -706,6 +717,23 @@ var helpDescsEnUS = map[string]string{
 	"versionresult-patch":         "The patch component of the JSON-RPC API version",
 	"versionresult-prerelease":    "Prerelease info about the current build",
 	"versionresult-buildmetadata": "Metadata about the current build",
+
+	// TestMempoolAcceptCmd help.
+	"testmempoolaccept--synopsis":  "Returns result of mempool acceptance tests indicating if raw transaction(s) would be accepted by mempool.",
+	"testmempoolaccept-rawtxns":    "Serialized transactions to test.",
+	"testmempoolaccept-maxfeerate": "Maximum acceptable fee rate in BTC/kB",
+
+	// TestMempoolAcceptCmd result help.
+	"testmempoolacceptresult-txid":             "The transaction hash in hex.",
+	"testmempoolacceptresult-wtxid":            "The transaction witness hash in hex.",
+	"testmempoolacceptresult-package-error":    "Package validation error, if any (only possible if rawtxs had more than 1 transaction).",
+	"testmempoolacceptresult-allowed":          "Whether the transaction would be accepted to the mempool.",
+	"testmempoolacceptresult-vsize":            "Virtual transaction size as defined in BIP 141.(only present when 'allowed' is true)",
+	"testmempoolacceptresult-reject-reason":    "Rejection string (only present when 'allowed' is false).",
+	"testmempoolacceptresult-fees":             "Transaction fees (only present if 'allowed' is true).",
+	"testmempoolacceptfees-base":               "Transaction fees (only present if 'allowed' is true).",
+	"testmempoolacceptfees-effective-feerate":  "The effective feerate in BTC per KvB.",
+	"testmempoolacceptfees-effective-includes": "Transactions whose fees and vsizes are included in effective-feerate. Each item is a transaction wtxid in hex.",
 }
 
 // rpcResultTypes specifies the result types that each RPC command can return.
@@ -728,6 +756,7 @@ var rpcResultTypes = map[string][]interface{}{
 	"getblockheader":         {(*string)(nil), (*btcjson.GetBlockHeaderVerboseResult)(nil)},
 	"getblocktemplate":       {(*btcjson.GetBlockTemplateResult)(nil), (*string)(nil), nil},
 	"getblockchaininfo":      {(*btcjson.GetBlockChainInfoResult)(nil)},
+	"getchaintips":           {(*[]btcjson.GetChainTipsResult)(nil)},
 	"getcfilter":             {(*string)(nil)},
 	"getcfilterheader":       {(*string)(nil)},
 	"getconnectioncount":     {(*int32)(nil)},
@@ -740,7 +769,7 @@ var rpcResultTypes = map[string][]interface{}{
 	"getmempoolinfo":         {(*btcjson.GetMempoolInfoResult)(nil)},
 	"getmininginfo":          {(*btcjson.GetMiningInfoResult)(nil)},
 	"getnettotals":           {(*btcjson.GetNetTotalsResult)(nil)},
-	"getnetworkhashps":       {(*int64)(nil)},
+	"getnetworkhashps":       {(*float64)(nil)},
 	"getnodeaddresses":       {(*[]btcjson.GetNodeAddressesResult)(nil)},
 	"getpeerinfo":            {(*[]btcjson.GetPeerInfoResult)(nil)},
 	"getrawmempool":          {(*[]string)(nil), (*btcjson.GetRawMempoolVerboseResult)(nil)},
@@ -760,6 +789,7 @@ var rpcResultTypes = map[string][]interface{}{
 	"verifychain":            {(*bool)(nil)},
 	"verifymessage":          {(*bool)(nil)},
 	"version":                {(*map[string]btcjson.VersionResult)(nil)},
+	"testmempoolaccept":      {(*[]btcjson.TestMempoolAcceptResult)(nil)},
 
 	// Websocket commands.
 	"loadtxfilter":              nil,

@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/btcsuite/btcd/blockchain"
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
 )
 
 const (
@@ -172,17 +172,10 @@ func checkPkScriptStandard(pkScript []byte, scriptClass txscript.ScriptClass) er
 	return nil
 }
 
-// isDust returns whether or not the passed transaction output amount is
-// considered dust or not based on the passed minimum transaction relay fee.
-// Dust is defined in terms of the minimum transaction relay fee.  In
-// particular, if the cost to the network to spend coins is more than 1/3 of the
-// minimum transaction relay fee, it is considered dust.
-func isDust(txOut *wire.TxOut, minRelayTxFee btcutil.Amount) bool {
-	// Unspendable outputs are considered dust.
-	if txscript.IsUnspendable(txOut.PkScript) {
-		return true
-	}
-
+// GetDustThreshold calculates the dust limit for a *wire.TxOut by taking the
+// size of a typical spending transaction and multiplying it by 3 to account
+// for the minimum dust relay fee of 3000sat/kvb.
+func GetDustThreshold(txOut *wire.TxOut) int64 {
 	// The total serialized size consists of the output and the associated
 	// input script to redeem it.  Since there is no input script
 	// to redeem it yet, use the minimum size of a typical input script.
@@ -253,6 +246,20 @@ func isDust(txOut *wire.TxOut, minRelayTxFee btcutil.Amount) bool {
 		totalSize += 107
 	}
 
+	return 3 * int64(totalSize)
+}
+
+// IsDust returns whether or not the passed transaction output amount is
+// considered dust or not based on the passed minimum transaction relay fee.
+// Dust is defined in terms of the minimum transaction relay fee.  In
+// particular, if the cost to the network to spend coins is more than 1/3 of the
+// minimum transaction relay fee, it is considered dust.
+func IsDust(txOut *wire.TxOut, minRelayTxFee btcutil.Amount) bool {
+	// Unspendable outputs are considered dust.
+	if txscript.IsUnspendable(txOut.PkScript) {
+		return true
+	}
+
 	// The output is considered dust if the cost to the network to spend the
 	// coins is more than 1/3 of the minimum free transaction relay fee.
 	// minFreeTxRelayFee is in Satoshi/KB, so multiply by 1000 to
@@ -265,17 +272,17 @@ func isDust(txOut *wire.TxOut, minRelayTxFee btcutil.Amount) bool {
 	//
 	// The following is equivalent to (value/totalSize) * (1/3) * 1000
 	// without needing to do floating point math.
-	return txOut.Value*1000/(3*int64(totalSize)) < int64(minRelayTxFee)
+	return txOut.Value*1000/GetDustThreshold(txOut) < int64(minRelayTxFee)
 }
 
-// checkTransactionStandard performs a series of checks on a transaction to
+// CheckTransactionStandard performs a series of checks on a transaction to
 // ensure it is a "standard" transaction.  A standard transaction is one that
 // conforms to several additional limiting cases over what is considered a
 // "sane" transaction such as having a version in the supported range, being
 // finalized, conforming to more stringent size constraints, having scripts
 // of recognized forms, and not containing "dust" outputs (those that are
 // so small it costs more to process them than they are worth).
-func checkTransactionStandard(tx *btcutil.Tx, height int32,
+func CheckTransactionStandard(tx *btcutil.Tx, height int32,
 	medianTimePast time.Time, minRelayTxFee btcutil.Amount,
 	maxTxVersion int32) error {
 
@@ -301,8 +308,8 @@ func checkTransactionStandard(tx *btcutil.Tx, height int32,
 	// attacks.
 	txWeight := blockchain.GetTransactionWeight(tx)
 	if txWeight > maxStandardTxWeight {
-		str := fmt.Sprintf("weight of transaction %v is larger than max "+
-			"allowed weight of %v", txWeight, maxStandardTxWeight)
+		str := fmt.Sprintf("weight of transaction is larger than max "+
+			"allowed: %v > %v", txWeight, maxStandardTxWeight)
 		return txRuleError(wire.RejectNonstandard, str)
 	}
 
@@ -313,8 +320,8 @@ func checkTransactionStandard(tx *btcutil.Tx, height int32,
 		sigScriptLen := len(txIn.SignatureScript)
 		if sigScriptLen > maxStandardSigScriptSize {
 			str := fmt.Sprintf("transaction input %d: signature "+
-				"script size of %d bytes is large than max "+
-				"allowed size of %d bytes", i, sigScriptLen,
+				"script size is larger than max allowed: "+
+				"%d > %d bytes", i, sigScriptLen,
 				maxStandardSigScriptSize)
 			return txRuleError(wire.RejectNonstandard, str)
 		}
@@ -351,9 +358,9 @@ func checkTransactionStandard(tx *btcutil.Tx, height int32,
 		// "dust".
 		if scriptClass == txscript.NullDataTy {
 			numNullDataOutputs++
-		} else if isDust(txOut, minRelayTxFee) {
-			str := fmt.Sprintf("transaction output %d: payment "+
-				"of %d is dust", i, txOut.Value)
+		} else if IsDust(txOut, minRelayTxFee) {
+			str := fmt.Sprintf("transaction output %d: payment is "+
+				"dust: %v", i, txOut.Value)
 			return txRuleError(wire.RejectDust, str)
 		}
 	}
